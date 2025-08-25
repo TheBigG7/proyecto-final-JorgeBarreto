@@ -1,0 +1,26 @@
+# Script/CLI para crear la estructura base de un proyecto Dagster
+create-dagster
+
+# Núcleo del framework Dagster para orquestar pipelines de datos
+dagster
+
+# Servidor web para la interfaz gráfica de Dagster (http://localhost:3000)
+dagster-webserver
+
+# Utilidades de línea de comando adicionales para Dagster
+dagster-dg-cli
+
+# Librería principal para manipulación y análisis de datos en Python
+pandas
+
+duckdb
+
+# Implementación de Apache Arrow en Python (útil para Parquet y datos columnar)
+# Dependencia común si se usa DuckDB o formatos de alto rendimiento
+pyarrow
+
+# Librería para leer y escribir archivos Excel (.xlsx)
+openpyxl
+
+# Cliente HTTP para descargar datos desde la web (ej. CSV de Our World in Data)
+requests
