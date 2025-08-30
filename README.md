@@ -41,11 +41,12 @@ El pipeline se implementa en **Dagster** y está compuesto por un conjunto de *a
 - `eda_manual`: Perfilado inicial del CSV manual.
 - `leer_datos`: Descarga automática desde OWID.
 - `chequeos_entrada`: Validaciones estructurales y semánticas.
-- `datos_procesados`: Filtrado por países, selección de columnas, tipos.
+- `datos_procesados`: Filtrado por países, selección de columnas, tipos, elimina nulos y duplicados si existen.
 - `metrica_incidencia_7d`: Cálculo de incidencia semanal.
 - `metrica_factor_crec_7d`: Cálculo de factor de crecimiento.
 - `chequeos_salida`: Validaciones sobre métricas.
 - `reporte_excel_covid`: Exportación final a Excel.
+     `NOTA: Si las fechas en el excel generado se ven asi -> ##### amplie la columna para poder ver el contenido`
 
 ## 2. Justificación de Diseño
 
