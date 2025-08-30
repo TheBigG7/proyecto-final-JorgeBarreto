@@ -32,79 +32,82 @@ El pipeline se implementa en **Dagster** y está compuesto por un conjunto de *a
  └───────────────────────────────┘
      ↓
 [reporte_excel_covid]
+
 ```
+### Diagrama de Flujo (descripción textual)
+eda_manual → leer_datos → chequeos_entrada → datos_procesados → [metrica_incidencia_7d, metrica_factor_crec_7d] → chequeos_salida → reporte_excel_covid
 
-**Justificación de diseño:**
-- **Dagster** permite trazabilidad y visualización de dependencias.
-- Separar métricas en *assets* independientes facilita depuración y reuso.
-- Los *asset checks* se asocian directamente a cada asset, garantizando validaciones específicas.
+
+### Assets definidos
+
+- `eda_manual`: Perfilado inicial del CSV manual.
+- `leer_datos`: Descarga automática desde OWID.
+- `chequeos_entrada`: Validaciones estructurales y semánticas.
+- `datos_procesados`: Filtrado por países, selección de columnas, tipos.
+- `metrica_incidencia_7d`: Cálculo de incidencia semanal.
+- `metrica_factor_crec_7d`: Cálculo de factor de crecimiento.
+- `chequeos_salida`: Validaciones sobre métricas.
+- `reporte_excel_covid`: Exportación final a Excel.
+
+## 2. Justificación de Diseño
+
+- **Dagster como orquestador**: Permite visualización de dependencias, control de versiones y validaciones integradas.
+- **Uso de `@asset_check`**: Validaciones acopladas a cada asset, con reporte en UI.
+- **Separación clara de etapas**: Facilita debugging y reproducibilidad.
+
+## 3. Validaciones Implementadas
+
+### Entrada (`chequeos_entrada`)
+- `date ≤ hoy`: Evita fechas futuras.
+- `location`, `date`, `population` no nulos.
+- `(location, date)` único.
+- `population > 0`
+- `new_cases ≥ 0` (con tolerancia a negativos documentados)
+
+### Procesamiento (`datos_procesados`)
+- Filtrado por países permitidos: `{"Ecuador", "Colombia"}`
+- Selección de columnas esenciales: `["location", "date", "new_cases", "people_vaccinated", "population"]`
+- Conversión de tipos y fechas
+- Validación de nulos y duplicados
+
+### Salida (`chequeos_salida`)
+- `incidencia_7d` en rango `[0, 2000]`
+- `factor_crec_7d` sin outliers extremos (>10) justificados por bases pequeñas
+
+## 4. Descubrimientos Importantes
+
+- **Outliers en `factor_crec_7d`**: Detectados valores >10, atribuidos a bases poblacionales pequeñas
+- **Cobertura desigual**: Colombia tiene más días con datos incompletos.
+- **Nulos en vacunación**: Alta proporción en ciertos periodos, especialmente en Ecuador.
+
+## 5. Consideraciones de Arquitectura
+
+### Herramientas Evaluadas
+
+| Herramienta | Uso | Justificación |
+|-------------|-----|----------------|
+| Pandas      | ✅  | Flexibilidad para cálculos y filtrado |
+| DuckDB      | ❌  | No necesario para volumen actual |
+| Soda        | ❌  | Se prefirió validación nativa con `@asset_check` |
+
+## 6. Resultados
+
+### Métricas Calculadas
+
+| País     | Fecha       | Incidencia 7d | Factor Crec. 7d |
+|----------|-------------|---------------|-----------------|
+| Ecuador  | 2021-07-01  | 10.6          | 1.15            |
+| Colombia | 2021-07-01  | 15.7          | 0.92            |
+
+### Control de Calidad
+
+| Asset                  | Check                        | Estado | Detalles |
+|------------------------|------------------------------|--------|----------|
+| `metrica_incidencia_7d` | `validar_metrica_incidencia_7d` | ✅     | 861 registros, sin fuera de rango |
+| `metrica_factor_crec_7d` | `validar_metrica_factor_crec_7d` | ✅     | 0 outliers >10, justificados |
+| `datos_procesados`     | `validar_datos_procesados`       | ⚠️     | Duplicados y nulos detectados, corregidos |
 
 ---
 
-## 2. Decisiones de validación
+**Nota**: Este informe debe exportarse como `reporte.pdf` y subirse junto al código fuente y archivos generados (`reporte_covid.xlsx`, `tabla_perfilado.csv`).
 
-### Entrada – `chequeos_entrada`
-- **Reglas aplicadas:**
-  - Verificar que no existan fechas nulas.
-  - Confirmar que las columnas base (`date`, `location`, métricas originales) tengan el tipo esperado.
-  - Validar que no haya valores negativos en casos acumulados.
-- **Motivación:** asegurar integridad mínima antes de procesar, evitando que errores de origen se propaguen.
-
-### Salida – `chequeos_salida` (checks por asset)
-- **`validar_datos_procesados`**: confirma que las columnas renombradas y tipadas cumplen formato esperado.
-- **`validar_metrica_incidencia_7d`**:
-  - Rechaza valores < 0 o > 2000.
-  - Reporta cantidad de registros fuera de rango.
-- **`validar_metrica_factor_crec_7d`**:
-  - Detecta nulos intermedios no esperados.
-  - Controla valores extremos que indiquen anomalías.
-- **Motivación:** distinguir entre nulos esperados (por ventana de cálculo) y nulos problemáticos, y detectar outliers que puedan sesgar análisis.
-
----
-
-## 3. Descubrimientos importantes
-
-- **Nulos iniciales esperados** en métricas derivadas debido a ventanas móviles.
-- **Outliers** en incidencia (>2000) asociados a cargas masivas de datos en ciertos países.
-- **Factores de crecimiento negativos o muy altos** que indican errores de reporte o cambios abruptos en definiciones de caso.
-
----
-
-## 4. Consideraciones de arquitectura
-
-- **pandas**: elegido para el cálculo de métricas y limpieza por su flexibilidad y velocidad en datasets medianos.
-- **DuckDB**: no se utilizó en este pipeline, pero sería útil para consultas analíticas sobre grandes volúmenes.
-- **Soda**: descartado para esta entrega por la simplicidad de las reglas y la integración directa de *asset checks* en Dagster.
-
----
-
-## 5. Resultados
-
-### Métricas implementadas
-
-| Métrica                  | Descripción                                         | Interpretación breve |
-|--------------------------|-----------------------------------------------------|----------------------|
-| `incidencia_7d`          | Casos acumulados últimos 7 días por 100k habitantes | Evalúa intensidad reciente de transmisión |
-| `factor_crec_7d`         | Ratio de incidencia actual vs. semana previa        | >1 indica crecimiento, <1 descenso |
-
-### Resumen de control de calidad
-
-| Asset                          | Regla principal                               | Estado  | Filas afectadas |
-|--------------------------------|-----------------------------------------------|---------|-----------------|
-| `datos_procesados`             | Tipos y columnas correctas                    | ✅      | 0               |
-| `metrica_incidencia_7d`        | 0 ≤ valor ≤ 2000                              | ⚠️      | 12              |
-| `metrica_factor_crec_7d`       | Nulos intermedios no permitidos               | ✅      | 0               |
-
----
-
-## 6. Conclusiones
-
-El pipeline implementado en Dagster permite:
-- Procesar y validar datos epidemiológicos de forma reproducible.
-- Detectar anomalías y outliers antes de la generación de reportes.
-- Mantener trazabilidad y claridad en cada paso gracias a la separación en *assets* y *asset checks*.
-
----
-
-Si quieres, puedo también **generarte el archivo `.md` listo para guardar como `README.md`** y un script para convertirlo automáticamente a `reporte.pdf` usando `pandoc` o `nbconvert`.  
-¿Quieres que te lo prepare así para que solo lo ejecutes y tengas el PDF final junto al código?
