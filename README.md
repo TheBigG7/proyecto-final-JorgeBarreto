@@ -1,9 +1,3 @@
-Perfecto, con base en el código y definiciones que aparecen en tu `assets.py` y la estructura del proyecto, puedo proponerte un **borrador de Informe Técnico** en formato Markdown que cumpla con tu rúbrica y que luego puedas convertir a `reporte.pdf` y enlazar en tu `README.md`.  
-
-Aquí tienes el contenido estructurado y listo para usar:
-
----
-
 # Informe Técnico – Pipeline de Métricas COVID-19
 
 ## 1. Arquitectura del pipeline
