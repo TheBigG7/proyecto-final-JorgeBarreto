@@ -17,7 +17,7 @@ El pipeline se implementa en **Dagster** y está compuesto por un conjunto de *a
    - `validar_metrica_incidencia_7d`
    - `validar_metrica_factor_crec_7d`
 
-**Diagrama conceptual:**
+**Diagrama:**
 
 ```
 [CSV Original] 
@@ -34,8 +34,6 @@ El pipeline se implementa en **Dagster** y está compuesto por un conjunto de *a
 [reporte_excel_covid]
 
 ```
-### Diagrama de Flujo (descripción textual)
-eda_manual → leer_datos → chequeos_entrada → datos_procesados → [metrica_incidencia_7d, metrica_factor_crec_7d] → chequeos_salida → reporte_excel_covid
 
 
 ### Assets definidos
@@ -86,9 +84,9 @@ eda_manual → leer_datos → chequeos_entrada → datos_procesados → [metrica
 
 | Herramienta | Uso | Justificación |
 |-------------|-----|----------------|
-| Pandas      | ✅  | Flexibilidad para cálculos y filtrado |
-| DuckDB      | ❌  | No necesario para volumen actual |
-| Soda        | ❌  | Se prefirió validación nativa con `@asset_check` |
+| Pandas      | x  | Flexibilidad para cálculos y filtrado |
+| DuckDB      | -  | No necesario para volumen actual |
+| Soda        | -  | Se prefirió validación nativa con `@asset_check` |
 
 ## 6. Resultados
 
@@ -105,9 +103,6 @@ eda_manual → leer_datos → chequeos_entrada → datos_procesados → [metrica
 |------------------------|------------------------------|--------|----------|
 | `metrica_incidencia_7d` | `validar_metrica_incidencia_7d` | ✅     | 861 registros, sin fuera de rango |
 | `metrica_factor_crec_7d` | `validar_metrica_factor_crec_7d` | ✅     | 0 outliers >10, justificados |
-| `datos_procesados`     | `validar_datos_procesados`       | ⚠️     | Duplicados y nulos detectados, corregidos |
+| `datos_procesados`     | `validar_datos_procesados`       | ✅     | Duplicados y nulos detectados, corregidos |
 
 ---
-
-**Nota**: Este informe debe exportarse como `reporte.pdf` y subirse junto al código fuente y archivos generados (`reporte_covid.xlsx`, `tabla_perfilado.csv`).
-
