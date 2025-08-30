@@ -24,5 +24,5 @@ openpyxl
 
 # Cliente HTTP para descargar datos desde la web (ej. CSV de Our World in Data)
 requests
-
+# Para tratar mejor archivos Excel
 xlsxwriter
